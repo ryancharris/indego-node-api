@@ -2,6 +2,7 @@
 var express = require('express');
 var router = express.Router();
 var request = require('request');
+var async = require('async');
 var _ = require('lodash');
 
 // Config variables
@@ -11,6 +12,7 @@ var WEATHER_API_KEY = config.weatherKey();
 // Global Variables
 var stations;
 var weather;
+var kioskId;
 
 router.get('/', function(req, res) {
   // Parse query string
@@ -35,14 +37,23 @@ router.get('/:kioskId', function(req, res) {
   var at = parseQueryParams(req.query);
 
   // Parse query params
-  var kioskId = req.params.kioskId;
+  kioskId = parseInt(req.params.kioskId);
+
+  // Make request to Indego GeoJSON API
+  fetchStationData(returnStationData);
 
   // Fetch weather data
   fetchWeatherData(returnWeatherData);
 
+  if (kioskId) {
+    console.log('kioskId present!!!');
+    console.log(typeof stations['features']);
+  }
+
   // Send server response as JSON
   res.json({
     at,
+    stations,
     weather
   });
 });
@@ -64,24 +75,22 @@ function parseQueryParams(query) {
 
 function fetchStationData(callback) {
   request('https://www.rideindego.com/stations/json/', function(err, res, body) {
-    stations = JSON.parse(body);
-    callback();
+    callback(body);
   });
-}
-
-function returnStationData() {
-  console.info(stations);
 }
 
 function fetchWeatherData(callback) {
   request(`https://api.openweathermap.org/data/2.5/weather?id=4560349&APPID=${WEATHER_API_KEY}`, function(err, res, body) {
-    weather = JSON.parse(body);
-    callback();
+    callback(body);
   });
 }
 
-function returnWeatherData() {
-  console.info(weather);
+function returnStationData(body) {
+  stations = JSON.parse(body);
+}
+
+function returnWeatherData(body) {
+  weather = JSON.parse(body);
 }
 
 module.exports = router;
