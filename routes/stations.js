@@ -1,25 +1,20 @@
 var express = require('express');
 var router = express.Router();
+var request = require('request');
 var _ = require('lodash');
-var axios = require('axios');
+var stations;
 
 router.get('/', function(req, res) {
   // Parse query string
   var at = req.query.at;
 
   // Make request to Indego GeoJSON API
-  axios.get('https://www.rideindego.com/stations/json/')
-    .then(function(response) {
-      console.log(response.data);
-    })
-    .catch(function(errors) {
-      console.log(error);
-    });
+  fetchStationData(returnRes);
 
   // Send server response as JSON
   res.json({
     at,
-    response
+    stations
   });
 });
 
@@ -41,5 +36,20 @@ router.get('/:kioskId', function(req, res) {
     query
   });
 });
+
+//
+// HELPER FUNCTIONS
+//
+
+function fetchStationData(callback) {
+  request('https://www.rideindego.com/stations/json/', function(err, res, body) {
+    stations = JSON.parse(body);
+    callback();
+  });
+}
+
+function returnRes() {
+  console.log(stations);
+}
 
 module.exports = router;
