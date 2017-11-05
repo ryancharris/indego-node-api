@@ -1,20 +1,30 @@
+// NPM packages
 var express = require('express');
 var router = express.Router();
 var request = require('request');
 var _ = require('lodash');
+
+// Config variables
+var config = require('../config/config');
+var WEATHER_API_KEY = config.weatherKey();
+
+// Global Variables
 var stations;
+var weather;
 
 router.get('/', function(req, res) {
   // Parse query string
   var at = req.query.at;
 
   // Make request to Indego GeoJSON API
-  fetchStationData(returnRes);
+  fetchStationData(returnStationData);
+  fetchWeatherData(returnWeatherData);
 
   // Send server response as JSON
   res.json({
     at,
-    stations
+    stations,
+    weather
   });
 });
 
@@ -48,8 +58,19 @@ function fetchStationData(callback) {
   });
 }
 
-function returnRes() {
+function returnStationData() {
   console.log(stations);
+}
+
+function fetchWeatherData(callback) {
+  request(`https://api.openweathermap.org/data/2.5/forecast?id=4560349&APPID=${WEATHER_API_KEY}`, function(err, res, body) {
+    weather = JSON.parse(body);
+    callback();
+  });
+}
+
+function returnWeatherData() {
+  console.log(weather);
 }
 
 module.exports = router;
