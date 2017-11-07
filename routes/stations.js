@@ -13,6 +13,7 @@ var WEATHER_API_KEY = config.weatherKey();
 var stations;
 var weather;
 var kioskId;
+var singleStationData;
 
 router.get('/', function(req, res) {
   // Parse query string
@@ -40,15 +41,27 @@ router.get('/:kioskId', function(req, res) {
   kioskId = parseInt(req.params.kioskId);
 
   // Make request to Indego GeoJSON API
-  fetchStationData(returnStationData);
+  // fetchStationData(returnStationData);
+
+  async.series([
+    function(callback) {
+      console.log('fetching station data');
+      fetchStationData(returnStationData);
+      callback(null);
+    },
+    function(callback) {
+      console.log('fetch is over, now parse if needed')
+
+      if (kioskId) {
+        singleStationData = parseKioskData(stations);
+      }
+
+      callback(null);
+    }
+  ]);
 
   // Fetch weather data
   fetchWeatherData(returnWeatherData);
-
-  if (kioskId) {
-    console.log('kioskId present!!!');
-    console.log(typeof stations['features']);
-  }
 
   // Send server response as JSON
   res.json({
@@ -61,6 +74,18 @@ router.get('/:kioskId', function(req, res) {
 //
 // HELPER FUNCTIONS
 //
+
+function parseKioskData(stationsData) {
+  var stationArray = stationsData['features'];
+
+  var filteredData = stationArray.filter(function(station) {
+    if (station.properties.kioskId === kioskId) {
+      return station;
+    }
+  });
+
+  stations = filteredData;
+}
 
 function parseQueryParams(query) {
   var queryStringArray = _.toPairs(query);
@@ -86,10 +111,12 @@ function fetchWeatherData(callback) {
 }
 
 function returnStationData(body) {
+  console.log('setting stations');
   stations = JSON.parse(body);
 }
 
 function returnWeatherData(body) {
+  console.log('setting weather data');
   weather = JSON.parse(body);
 }
 
