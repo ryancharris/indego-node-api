@@ -16,27 +16,63 @@ let stations;
 let weather;
 let kioskId;
 
-router.get('/', function(req, res) {
+router.get('/', (req, res) => {
   // Parse query string
-  let at = req.query.at;
+  const at = req.query.at !== 'undefined' ? req.query.at : '';
+  let weatherData;
+  let stationData;
 
-  // Make request to Indego GeoJSON API
-  fetchStationData(returnStationData);
-
-  // Fetch weather data
-  fetchWeatherData(returnWeatherData);
-
-  // Send server response as JSON
-  res.json({
-    at,
-    stations,
-    weather
+  async.series({
+    stations: (callback) => {
+      // Request API data from Indeogo
+      async.series([
+        (callback) => {
+          request('https://www.rideindego.com/stations/json/', (err, response, body) => {
+            callback(null, body);
+          });
+        },
+      ], (err, results) => {
+        callback(null, JSON.parse(results));
+      });
+    },
+    weather: (callback) => {
+      // Request API data from OpenWeatherMap
+      async.series([
+        (callback) => {
+          request(`https://api.openweathermap.org/data/2.5/weather?id=4560349&APPID=${WEATHER_API_KEY}`, (err, res, body) => {
+            callback(null, body);
+          });
+        },
+      ], (err, results) => {
+        callback(null, JSON.parse(results));
+      });
+    },
+  }, (err, results) => {
+    async.series([
+      (callback) => {
+        // Assign results of API calls to variables
+        weatherData = results.weather;
+        stationData = results.stations;
+        callback(null, results);
+      },
+    ], (error, assignmentResults) => {
+      // Send server response as JSON
+      res.json({
+        at,
+        stations: stationData,
+        weather: weatherData,
+      });
+    });
   });
 });
 
-router.get('/:kioskId', function(req, res) {
-  // Parse query string and create object from params
-  let at = parseQueryParams(req.query);
+router.get('/:kioskId', (req, res) => {
+  // Parse query string
+  const at = req.query.at !== 'undefined' ? req.query.at : '';
+  const to = req.query.to !== 'undefined' ? req.query.to : '';
+  const from = req.query.from !== 'undefined' ? req.query.from : '';
+  const frequency = req.query.frequency !== 'undefined' ? req.query.frequency : '';
+
 
   // Parse query params
   kioskId = parseInt(req.params.kioskId);
@@ -61,6 +97,8 @@ router.get('/:kioskId', function(req, res) {
     }
   ]);
 
+  // TODO: Async this API call
+
   // Fetch weather data
   fetchWeatherData(returnWeatherData);
 
@@ -68,7 +106,7 @@ router.get('/:kioskId', function(req, res) {
   res.json({
     at,
     stations,
-    weather
+    weather,
   });
 });
 
@@ -79,7 +117,7 @@ router.get('/:kioskId', function(req, res) {
 function parseKioskData(stationsData) {
   const stationArray = stationsData.features;
 
-  const filteredData = stationArray.filter(function(station) {
+  const filteredData = stationArray.filter((station) => {
     if (station.properties.kioskId === kioskId) {
       return station;
     }
@@ -88,36 +126,23 @@ function parseKioskData(stationsData) {
   stations = filteredData;
 }
 
-function parseQueryParams(query) {
-  const queryStringArray = _.toPairs(query);
-  const queryString = _.head(queryStringArray).join('=');
-  const querySplit = _.split(queryString, ',');
-  const arrays = querySplit.map(function(element) {
-    return element.split('=');
-  });
-  const queryInfo = _.fromPairs(arrays);
-  return queryInfo.at;
-}
-
 function fetchStationData(callback) {
-  request('https://www.rideindego.com/stations/json/', function(err, res, body) {
+  request('https://www.rideindego.com/stations/json/', (err, res, body) => {
     callback(body);
   });
 }
 
 function fetchWeatherData(callback) {
-  request(`https://api.openweathermap.org/data/2.5/weather?id=4560349&APPID=${WEATHER_API_KEY}`, function(err, res, body) {
+  request(`https://api.openweathermap.org/data/2.5/weather?id=4560349&APPID=${WEATHER_API_KEY}`, (err, res, body) => {
     callback(body);
   });
 }
 
 function returnStationData(body) {
-  console.log('setting stations');
   stations = JSON.parse(body);
 }
 
 function returnWeatherData(body) {
-  console.log('setting weather data');
   weather = JSON.parse(body);
 }
 
