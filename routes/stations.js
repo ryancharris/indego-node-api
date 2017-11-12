@@ -53,7 +53,7 @@ router.get('/:kioskId', function(req, res) {
       console.log('fetch is over, now parse if needed')
 
       if (kioskId) {
-        singleStationData = parseKioskData(stations);
+        parseKioskData(stations);
       }
 
       callback(null);
