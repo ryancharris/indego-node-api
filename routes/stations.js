@@ -1,23 +1,24 @@
 // NPM packages
-var express = require('express');
-var router = express.Router();
-var request = require('request');
-var async = require('async');
-var _ = require('lodash');
+const express = require('express');
+const request = require('request');
+const async = require('async');
+const _ = require('lodash');
 
 // Config variables
-var config = require('../config/config');
-var WEATHER_API_KEY = config.weatherKey();
+const config = require('../config/config');
+
+// Instances
+const router = express.Router();
+const WEATHER_API_KEY = config.weatherKey();
 
 // Global Variables
-var stations;
-var weather;
-var kioskId;
-var singleStationData;
+let stations;
+let weather;
+let kioskId;
 
 router.get('/', function(req, res) {
   // Parse query string
-  var at = req.query.at;
+  let at = req.query.at;
 
   // Make request to Indego GeoJSON API
   fetchStationData(returnStationData);
@@ -35,7 +36,7 @@ router.get('/', function(req, res) {
 
 router.get('/:kioskId', function(req, res) {
   // Parse query string and create object from params
-  var at = parseQueryParams(req.query);
+  let at = parseQueryParams(req.query);
 
   // Parse query params
   kioskId = parseInt(req.params.kioskId);
@@ -76,9 +77,9 @@ router.get('/:kioskId', function(req, res) {
 //
 
 function parseKioskData(stationsData) {
-  var stationArray = stationsData['features'];
+  const stationArray = stationsData.features;
 
-  var filteredData = stationArray.filter(function(station) {
+  const filteredData = stationArray.filter(function(station) {
     if (station.properties.kioskId === kioskId) {
       return station;
     }
@@ -88,14 +89,14 @@ function parseKioskData(stationsData) {
 }
 
 function parseQueryParams(query) {
-  var queryStringArray = _.toPairs(query);
-  var queryString = _.head(queryStringArray).join("=");
-  var querySplit = _.split(queryString, ',');
-  var arrays = querySplit.map(function(element) {
+  const queryStringArray = _.toPairs(query);
+  const queryString = _.head(queryStringArray).join('=');
+  const querySplit = _.split(queryString, ',');
+  const arrays = querySplit.map(function(element) {
     return element.split('=');
   });
-  var query = _.fromPairs(arrays);
-  return query.at;
+  const queryInfo = _.fromPairs(arrays);
+  return queryInfo.at;
 }
 
 function fetchStationData(callback) {
